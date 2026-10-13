@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Interactive shader tutorial: create a procedural checker material with the node editor and preview the result in 3D." />
+    <title>Your first procedural material · Shader Lab</title>
+</head>
+<body>
+    <a class="skip-link" href="#shader-tutorial">Skip to the exercise</a>
+    <header class="site-header"><a class="brand" href="./index.html">SHADER / LAB</a>
+        <nav aria-label="Navigation"><a href="./index.html">Free editor</a><a href="./tutorial.html" aria-current="page">Guided tutorial</a></nav>
+    </header>
+    <main class="page-shell">
+        <section class="hero tutorial-hero"><span class="eyebrow">TUTORIAL 01 · BEGINNER · ABOUT 10 MINUTES</span>
+            <h1>Your first<br /><span>procedural material.</span></h1>
+            <p>A texture does not have to be an image. In this lesson, you create a mathematical pattern, choose how it responds to light, and connect the result to the material surface.</p>
+            <div class="prerequisites"><strong>Before you start</strong><span>All you need is a browser with JavaScript. WebGL 2 enables the 3D preview.</span></div>
+        </section>
+        <div id="shader-tutorial" data-tutorial="checker"></div>
+        <noscript><p>Enable JavaScript to use the exercise. Serve this folder with npm run dev; the tutorial does not work by double-clicking the source HTML.</p></noscript>
+        <section class="reference-panel" aria-labelledby="connections-title"><span class="eyebrow">UNDERSTAND WHAT YOU BUILT</span>
+            <h2 id="connections-title">Three nodes. Two connections. One material.</h2>
+            <div class="node-recipe" aria-label="Material recipe">
+                <div><strong>Checker Texture</strong><span>Color · procedural pattern</span></div><span aria-hidden="true">→</span>
+                <div><strong>Principled BSDF</strong><span>Base Color · response to light</span></div><span aria-hidden="true">→</span>
+                <div><strong>Material Output</strong><span>Surface · final result</span></div>
+            </div>
+            <details><summary>Why is the sphere still gray?</summary><p>The preview only uses the chain that reaches Material Output. Check Color → Base Color and BSDF → Surface. A disconnected node does not change the result.</p></details>
+            <details><summary>What do the colored dots mean?</summary><p>They are sockets: yellow carries color, gray carries numbers, green carries BSDF, blue carries normals, and purple carries displacement. The editor checks compatibility and prevents cycles.</p></details>
+            <details><summary>How can I experiment after the lesson?</summary><p>Change Color 1 and Color 2, try different scales, and compare Roughness values. Steps are re-evaluated whenever the graph changes, so they become pending again if you change the requested values.</p></details>
+            <details><summary>How do I turn this page into a different lesson?</summary><p>Create a definition in src/tutorials, register its identifier, and change data-tutorial in the HTML. The complete procedure, including code examples and tests, is in docs/tutoriais.md.</p></details>
+        </section>
+    </main>
+    <footer class="site-footer">No progress is sent to servers · export your graph to continue later</footer>
+    <script type="module" src="./src/main.tsx"></script>
+</body>
+</html>

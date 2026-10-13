@@ -1,0 +1,368 @@
+/* O editor de nós.
+   As cores e os tipos de letra são os do resto da aplicação — isto é uma
+   secção do Visualizador. O comportamento é o de um editor de nós: grelha,
+   arrastar, zoom, ligações curvas por cima de tudo. */
+
+.ne-wrap {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: var(--bg);
+}
+
+.ne-barra {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.ne-zoom { margin-left: auto; font-size: 11px; color: var(--text-muted); }
+
+/* As teclas do editor, sem ocupar a barra.
+   Um editor de nós sem atalhos usa-se ao rato e um editor de nós com atalhos
+   que ninguém sabe que existem é a mesma coisa. Isto é o meio-termo que cabe:
+   um sinal discreto que os diz todos ao passar o rato, escrito a partir da
+   mesma tabela que os executa — ver SHORTCUT_HELP. */
+.ne-atalhos {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    color: var(--text-dim);
+    font-size: 10px;
+    cursor: help;
+}
+
+.ne-atalhos:hover { border-color: var(--accent); color: var(--accent); }
+
+/* A grelha é o que diz que a tela se moveu quando não há nós no ecrã. */
+.ne-tela {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    cursor: grab;
+    outline: none;
+    background-color: var(--bg);
+    background-image:
+        linear-gradient(to right, var(--border) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+    opacity: 1;
+}
+
+.ne-tela:active { cursor: grabbing; }
+
+.ne-mundo { position: absolute; inset: 0; transform-origin: 0 0; }
+
+/* As ligações passam por baixo dos nós mas por cima da grelha, e não apanham o
+   rato a não ser na própria linha — ver .ne-ligacao. */
+.ne-ligacoes {
+    position: absolute;
+    overflow: visible;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+.ne-ligacao {
+    fill: none;
+    stroke-width: 2;
+    pointer-events: stroke;
+    cursor: pointer;
+}
+
+.ne-ligacao:hover { stroke-width: 4; }
+
+/* A ligação a ser feita é tracejada: ainda não existe no grafo. */
+.ne-ligacao-nova { stroke-dasharray: 6 4; pointer-events: none; }
+
+/* ── Os nós ─────────────────────────────────────────────────────────── */
+
+.ne-no {
+    position: absolute;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--panel-shadow);
+    font-size: 11px;
+    user-select: none;
+}
+
+.ne-no-sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+/* Só o cabeçalho arrasta — ver o comentário no NodeBox.
+
+   A cor de fundo vem do NODE_CLASS_COLORS, pela classe do nó, e por isso é
+   escrita em linha pelo componente; o `background` aqui é o que se vê se algum
+   dia um nó ficar sem classe. O texto é claro e fixo nos dois temas: um
+   cabeçalho colorido é uma etiqueta, e não uma superfície do tema — com
+   `var(--text)` ficaria preto sobre verde escuro no tema de dia. */
+.ne-cabecalho {
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    color: #f2f2f2;
+    font-weight: 600;
+    cursor: move;
+}
+
+.ne-linha {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+}
+
+.ne-linha-out { justify-content: flex-end; }
+
+.ne-rotulo { flex: 1; color: var(--text-muted); }
+.ne-rotulo-out { text-align: right; }
+
+/* Os sockets ficam meio de fora da caixa, como num editor de nós — é o que
+   torna óbvio que é ali que se agarra. */
+.ne-socket {
+    position: absolute;
+    width: 11px;
+    height: 11px;
+    padding: 0;
+    border: 1px solid var(--bg);
+    border-radius: 50%;
+    cursor: crosshair;
+}
+
+.ne-socket-in { left: -6px; }
+.ne-socket-out { right: -6px; }
+.ne-socket:hover { transform: scale(1.35); }
+
+.ne-num, .ne-select {
+    width: 68px;
+    padding: 1px 4px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    font: inherit;
+    font-size: 10px;
+}
+
+.ne-cor { width: 32px; height: 18px; padding: 0; border: 1px solid var(--border); background: none; }
+
+/* Uma entrada ligada não mostra controlo: o valor vem de trás. */
+.ne-ligado { font-size: 9px; color: var(--accent); text-transform: uppercase; }
+
+.ne-propriedade { padding: 4px 8px 6px; }
+.ne-propriedade .ne-select { width: 100%; }
+
+.ne-propriedade.ne-image-property { box-sizing: border-box; height: 188px; padding: 6px 8px; }
+.ne-image-asset { display: flex; flex-direction: column; gap: 5px; font-size: 10px; }
+.ne-image-preview { height: 56px; display: flex; align-items: center; justify-content: center; background: var(--surface-2); border-radius: 4px; color: var(--text-muted); }
+.ne-image-preview img { max-width: 100%; max-height: 56px; object-fit: contain; }
+.ne-image-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.ne-image-status { color: var(--text-muted); }
+.ne-image-actions { display: flex; gap: 4px; }
+.ne-image-actions button { flex: 1; font-size: 10px; padding: 3px; min-height: 22px; }
+.ne-image-asset .ne-select { width: 100%; height: 22px; font-size: 10px; }
+.nodes-intro { max-width: 560px; width: calc(100% - 40px); max-height: 85vh; overflow: auto; border: 1px solid var(--border); border-radius: 14px; padding: 28px; color: var(--text); background: var(--surface); box-shadow: 0 20px 80px #0006; }
+.nodes-intro::backdrop { background: #0008; backdrop-filter: blur(3px); }
+.nodes-intro p, .nodes-intro li { line-height: 1.6; }
+.nodes-intro-badge { display: inline-block; color: #76baff; background: #4da6ff18; border-radius: 5px; padding: 6px 9px; font-size: 12px; }
+.nodes-intro-actions { display: flex; gap: 12px; margin-top: 20px; }
+.nodes-intro { margin: auto; max-width: 640px; }
+.nodes-intro p, .nodes-intro li { font-size: 13px; line-height: 1.5; }
+.nodes-intro ol { padding-left: 24px; }
+.nodes-intro h2 { margin: 10px 0; }
+.nodes-intro h3 { margin-top: 14px; }
+.ne-diagnostics { margin: 0; padding: 5px 10px; font-size: 11px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+
+.ne-vazio { margin: 0; font-size: 10px; line-height: 1.4; color: var(--text-dim); }
+
+/* ── Menu de criação ────────────────────────────────────────────────── */
+
+.ne-menu {
+    position: absolute;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 150px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--panel-shadow);
+}
+
+.ne-menu button {
+    padding: 6px 10px;
+    text-align: left;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.ne-menu button:last-child { border-bottom: 0; }
+.ne-menu button:hover { background: var(--accent); color: var(--accent-contrast); }
+
+/* ── A janela do editor ─────────────────────────────────────────────── */
+
+/* Por cima do visualizador e nao numa pagina a parte: quem monta um material
+   quer ver o modelo mudar ao lado. Deixa uma faixa do modelo a vista de
+   proposito — a esquerda, onde o painel nao esta. */
+/* A tela do editor enche a metade de baixo — ver .nw-editor. A janela
+   flutuante que isto já foi desapareceu quando o editor passou a ser uma
+   divisão da vista: uma janela por cima do modelo tapava justamente o que se
+   está a tentar ver mudar. */
+
+/* ── Os deslizadores dos efeitos ────────────────────────────────────── */
+
+.me-efeito { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.me-efeito label { font-size: 10px; color: var(--text-muted); }
+.me-efeito input[type='range'] { width: 100%; }
+.me-por-no { opacity: .55; }
+.me-aviso { margin-left: 6px; font-size: 9px; color: var(--accent); }
+.me-efeito input:disabled { cursor: not-allowed; }
+
+/* ── Grupos do menu de criação ──────────────────────────────────────────
+   Com dezoito tipos de nó, uma lista corrida obriga a lê-la toda de cada
+   vez. Os grupos são as categorias do registo — as mesmas por que as pastas
+   do código estão organizadas — e por isso não há aqui nenhuma lista de
+   nomes a poder ficar dessincronizada. */
+
+.ne-menu { max-height: 60vh; overflow-y: auto; }
+
+.ne-menu-grupo { display: flex; flex-direction: column; }
+
+.ne-menu-titulo {
+    padding: 5px 10px 3px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+/* Bate certo com o PROPERTY_ROW do layout.ts: as propriedades ficam entre as
+   entradas e as saídas, e é esta altura que decide onde as saídas caem. */
+.ne-propriedade {
+    box-sizing: border-box;
+    height: 30px;
+    padding: 4px 8px;
+}
+
+.ne-propriedade .ne-select {
+    width: 100%;
+    height: 22px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font: inherit;
+    font-size: 10px;
+}
+
+/* ── A divisão do fluxo de nós ──────────────────────────────────────────
+   O modelo em cima, o editor em baixo, e uma alça entre os dois. O visor não
+   é recriado: encolhe. */
+
+#n-splitter {
+    position: relative;
+    flex: 0 0 8px;
+    background: var(--border);
+    cursor: ns-resize;
+}
+
+#n-splitter:hover { background: var(--accent); }
+
+.nw-wrap {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    /* Acima do painel lateral, que é absoluto a contar do topo e chegaria aqui
+       abaixo. Enquanto o editor está aberto é ele o que está em cima. */
+    z-index: 12;
+}
+
+/* ── A barra dos materiais ──────────────────────────────────────────────
+   Compacta de propósito: ela tira altura ao editor, e o editor é o que se
+   está a usar. */
+
+.nw-barra {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+}
+
+.nw-etiqueta {
+    color: var(--text-dim);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.nw-materiais {
+    display: flex;
+    flex: 1;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.nw-material {
+    flex: 0 0 auto;
+    padding: 3px 10px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.nw-material:hover { color: var(--text); border-color: var(--border-strong); }
+
+.nw-material-sel {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-contrast);
+}
+
+.nw-vazio { color: var(--text-dim); font-size: 11px; }
+
+.nw-fechar {
+    flex: 0 0 auto;
+    padding: 3px 10px;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.nw-fechar:hover { color: var(--text); border-color: var(--border-strong); }
+
+.nw-editor { position: relative; flex: 1; min-height: 0; }
+
+.ne-relief-help { padding: 4px 10px 8px; color: var(--text-muted, #adb1bb); font-size: 11px; line-height: 1.45; }
+.ne-relief-help p { margin: 6px 0; }
+.ne-propriedade.ne-runtime-option { padding: 0 8px; }
+.ne-runtime-option .ne-option-label { display: block; font-size: 9px; line-height: 10px; color: var(--text-muted); }
+.ne-propriedade.ne-runtime-option .ne-select { height: 18px; }
+.ne-select:disabled { opacity: .5; }
